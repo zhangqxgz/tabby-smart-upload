@@ -15,6 +15,7 @@ import { NgbModal } from '@ng-bootstrap/ng-bootstrap'
 import { AppService, ConfigService, FileUpload, HotkeysService, NotificationsService, PlatformService } from 'tabby-core'
 import { SFTPSession } from 'tabby-ssh'
 import { I18nService } from '../i18n'
+import { CwdInjectService } from './cwdInject.service'
 import { UploadPathModalComponent } from '../components/uploadPathModal.component'
 
 /** 结构化的 SSH 标签页能力声明 */
@@ -70,6 +71,7 @@ export class UploadService {
         private hotkeys: HotkeysService,
         private modal: NgbModal,
         private i18n: I18nService,
+        private cwdInject: CwdInjectService,
     ) {
         this.hotkeys.hotkey$.subscribe(h => {
             if (h === 'smart-upload-to-cwd') {
@@ -137,6 +139,10 @@ export class UploadService {
             target = await tab.session!.getWorkingDirectory?.() ?? null
         } catch {
             target = null
+        }
+        // 钩子未生效/刚连接时，主动探测一次，避免误弹路径询问框
+        if (!target) {
+            target = await this.cwdInject.probeCwd(tab.session!)
         }
         if (!target && cfg?.rememberPathPerHost) {
             target = cfg.pathMemory?.[hostKey] ?? null

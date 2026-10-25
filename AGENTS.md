@@ -21,6 +21,7 @@
 - **TDZ 坑（真机实测）**：service ↔ component 循环依赖（service 里 ngbModal.open(组件) + 组件构造器 DI 该 service）打包后报 `Cannot access 'X' before initialization`；解法 = service 只发 openRequested$ Subject，组件文件导出 bridgeTransferCenterUi()，模块构造函数接线；无头验证用 scripts/cdp-check.mjs（Tabby 加 --remote-debugging-port=9223，Windows 侧 node 运行，看 UPLOAD_ICON_IN_DOM: true）
 - Tabby 原生 i18n .po 不含插件键（缺失回显 key）→ 自带 I18nService 词典（zh*/en），按 `config.store.language` 切换
 - CWD 注入：` eval "$(printf %s '<b64>' | base64 -d)" 2>/dev/null # tabby-smart-upload\n`，会话建立 1.2s 后经 `session.feedFromTerminal` 写入；轮询 `getWorkingDirectory()` 16s 验证；失败按主机（user@host:port）提示一次记入 failedHosts
+- **点击上传时按需探测 CWD**（probeCwd）：钩子要等下一次提示符才上报，刚连接/钩子失效时会误弹路径框 → 点击后发 ` printf '\033]1337;CurrentDir=%s\007' "$PWD"`（Tabby 拦截 OSC 不上屏，仅命令行回显），150ms 轮询取回；探测失败才走记忆/弹窗
 - bash hook 前置拼接 PROMPT_COMMAND（尾插遇空值/尾分号会语法错误）；tmux 走 DCS 透传（tmux≥3.3 需 allow-passthrough on）；fish 用 --on-event fish_prompt
 - 模态组件：NgbModal.open + 插件 module declarations 即可（插件模块会注入为根模块依赖，组件工厂可解析）；样式用 ViewEncapsulation.None + `su-`/`su-tc-` 前缀
 - 上传复用内置 `SFTPSession.upload`（.tabby-upload 临时文件 + rename）；openSFTP() 每连接实际复用同一 SFTP 通道

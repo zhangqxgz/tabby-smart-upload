@@ -92,6 +92,33 @@ export class CwdInjectService {
         return this.inject(session, hostKey)
     }
 
+    /**
+     * 主动探测当前目录（按需调用）：
+     * 向远端 shell 发一条 printf OSC 1337 的命令（该转义序列会被 Tabby 的 OSCProcessor
+     * 拦截解析、不会污染终端），无需等待 PROMPT_COMMAND 钩子，也适用于钩子注入失败/
+     * 刚连接/提示符尚未刷新的场景。命令会回显一行，属正常现象。
+     */
+    async probeCwd (session: ShellSessionLike, timeoutMs = 2500): Promise<string | null> {
+        try {
+            const known = await session.getWorkingDirectory?.()
+            if (known) {
+                return known
+            }
+            session.feedFromTerminal(Buffer.from(' printf \'\\033]1337;CurrentDir=%s\\007\' "$PWD"\n', 'utf-8'))
+            const deadline = Date.now() + timeoutMs
+            while (Date.now() < deadline) {
+                await new Promise(resolve => setTimeout(resolve, 150))
+                const cwd = await session.getWorkingDirectory?.()
+                if (cwd) {
+                    return cwd
+                }
+            }
+        } catch {
+            // 会话可能已销毁
+        }
+        return null
+    }
+
     private async inject (session: ShellSessionLike, hostKey: string): Promise<boolean> {
         if (this.injected.has(session)) {
             return true
