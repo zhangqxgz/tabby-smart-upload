@@ -40,7 +40,7 @@ export class SmartUploadToolbarProvider extends ToolbarButtonProvider {
                 icon: ICON_TRANSFERS,
                 title: this.i18n.t('toolbar.transfers'),
                 weight: 51,
-                click: () => this.transferCenter.open(),
+                click: () => this.transferCenter.requestOpen(),
             },
         ]
     }
@@ -78,7 +78,7 @@ export class SmartUploadContextMenuProvider extends TabContextMenuItemProvider {
         }
         const items: MenuItemOptions[] = [
             { label: this.i18n.t('ctx.uploadToCwd'), click: () => { void this.upload.uploadToCwd() } },
-            { label: this.i18n.t('ctx.transferCenter'), click: () => this.transferCenter.open() },
+            { label: this.i18n.t('ctx.transferCenter'), click: () => this.transferCenter.requestOpen() },
         ]
         if (sshTab.session) {
             items.push({

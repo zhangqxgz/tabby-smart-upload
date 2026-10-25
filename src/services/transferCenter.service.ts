@@ -4,12 +4,15 @@
  * 订阅 Tabby 的 platform.fileTransferStarted$（tabby-core 公开 API），
  * 把内置 SFTP 面板、拖拽、以及本插件自己发起的全部传输汇聚成带
  * 状态机 / 速度 / ETA 的列表，供传输中心模态框展示。
+ *
+ * 注意：本文件刻意不 import 模态框组件（组件反过来依赖本服务做 DI，
+ * 双向引用在打包后会产生 TDZ 运行时错误），打开模态框通过
+ * openRequested$ 由 transferCenterModal.component.ts 里的 bridgeTransferCenterUi 桥接。
  */
 import { Injectable } from '@angular/core'
-import { NgbModal } from '@ng-bootstrap/ng-bootstrap'
+import { Subject } from 'rxjs'
 import { ConfigService, FileDownload, FileTransfer, HotkeysService, NotificationsService, PlatformService } from 'tabby-core'
 import { I18nService } from '../i18n'
-import { TransferCenterModalComponent } from '../components/transferCenterModal.component'
 
 export type TransferStatus = 'active' | 'done' | 'error' | 'cancelled'
 
@@ -38,21 +41,21 @@ let seq = 0
 @Injectable()
 export class TransferCenterService {
     items: TransferItem[] = []
-    private modalOpenCount = 0
+    /** 请求打开传输中心模态框（由 UI 桥接层订阅并执行真正的打开） */
+    openRequested$ = new Subject<void>()
 
     constructor (
         private platform: PlatformService,
         private config: ConfigService,
         private notifications: NotificationsService,
         private hotkeys: HotkeysService,
-        private modal: NgbModal,
         private i18n: I18nService,
     ) {
         this.platform.fileTransferStarted$.subscribe(t => this.add(t))
         setInterval(() => this.sample(), SAMPLE_INTERVAL_MS)
         this.hotkeys.hotkey$.subscribe(h => {
             if (h === 'smart-upload-transfers') {
-                this.open()
+                this.requestOpen()
             }
         })
     }
@@ -65,15 +68,9 @@ export class TransferCenterService {
         return this.items.filter(x => x.status === 'active').reduce((a, x) => a + x.speed, 0)
     }
 
-    open (): void {
-        if (this.modalOpenCount > 0) {
-            return
-        }
-        this.modalOpenCount++
-        const ref = this.modal.open(TransferCenterModalComponent, { size: 'lg', centered: true })
-        ref.result.catch(() => null).finally(() => {
-            this.modalOpenCount--
-        })
+    /** 请求打开传输中心模态框 */
+    requestOpen (): void {
+        this.openRequested$.next()
     }
 
     cancel (item: TransferItem): void {
@@ -115,7 +112,7 @@ export class TransferCenterService {
             this.items.splice(idx, 1)
         }
         if (this.config.store.smartUpload?.autoOpenTransferCenter) {
-            this.open()
+            this.requestOpen()
         }
     }
 

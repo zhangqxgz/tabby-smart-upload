@@ -6,7 +6,7 @@
 import { CommonModule } from '@angular/common'
 import { FormsModule } from '@angular/forms'
 import { NgModule, Optional } from '@angular/core'
-import { NgbModule } from '@ng-bootstrap/ng-bootstrap'
+import { NgbModal, NgbModule } from '@ng-bootstrap/ng-bootstrap'
 import TabbyCoreModule, {
     ConfigProvider,
     HotkeyProvider,
@@ -30,7 +30,7 @@ import { CwdInjectService } from './services/cwdInject.service'
 import { TransferCenterService } from './services/transferCenter.service'
 import { UploadService } from './services/upload.service'
 import { SettingsTabComponent } from './components/settingsTab.component'
-import { TransferCenterModalComponent } from './components/transferCenterModal.component'
+import { TransferCenterModalComponent, bridgeTransferCenterUi } from './components/transferCenterModal.component'
 import { UploadPathModalComponent } from './components/uploadPathModal.component'
 
 @NgModule({
@@ -61,10 +61,12 @@ import { UploadPathModalComponent } from './components/uploadPathModal.component
 export default class SmartUploadModule {
     constructor (
         @Optional() log: LogService,
+        modal: NgbModal,
+        transfers: TransferCenterService,
         _upload: UploadService,
-        _transfers: TransferCenterService,
         _cwdInject: CwdInjectService,
     ) {
+        bridgeTransferCenterUi(transfers, modal)
         log?.create('smart-upload').info('module loaded')
     }
 }

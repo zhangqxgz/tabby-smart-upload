@@ -18,6 +18,7 @@
 - 部署：`use-in-tabby.ps1`（Junction 模式推荐，npm run watch + 重启 Tabby 生效）；验证 = 设置→插件出现 Smart Upload + DevTools 见 `[smart-upload] module loaded`
 - **tabby-ssh 的 npm 类型声明不导出 SSHTabComponent**（master 源码有）→ 一律用鸭式判断 `'sshSession' in tab` + 本地结构化接口，不 import 该类
 - npm 版 tabby-* typings 滞后源码（如 FileTransfer 无 getStatus）→ 防御式 `(x as any).method?.()`
+- **TDZ 坑（真机实测）**：service ↔ component 循环依赖（service 里 ngbModal.open(组件) + 组件构造器 DI 该 service）打包后报 `Cannot access 'X' before initialization`；解法 = service 只发 openRequested$ Subject，组件文件导出 bridgeTransferCenterUi()，模块构造函数接线；无头验证用 scripts/cdp-check.mjs（Tabby 加 --remote-debugging-port=9223，Windows 侧 node 运行，看 UPLOAD_ICON_IN_DOM: true）
 - Tabby 原生 i18n .po 不含插件键（缺失回显 key）→ 自带 I18nService 词典（zh*/en），按 `config.store.language` 切换
 - CWD 注入：` eval "$(printf %s '<b64>' | base64 -d)" 2>/dev/null # tabby-smart-upload\n`，会话建立 1.2s 后经 `session.feedFromTerminal` 写入；轮询 `getWorkingDirectory()` 16s 验证；失败按主机（user@host:port）提示一次记入 failedHosts
 - bash hook 前置拼接 PROMPT_COMMAND（尾插遇空值/尾分号会语法错误）；tmux 走 DCS 透传（tmux≥3.3 需 allow-passthrough on）；fish 用 --on-event fish_prompt

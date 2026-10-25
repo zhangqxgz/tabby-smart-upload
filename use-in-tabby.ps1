@@ -57,3 +57,6 @@ if ($RestartTabby) {
 Write-Host ""
 Write-Host "验证方式：Tabby → 设置 → 插件，应出现 Smart Upload；" -ForegroundColor Green
 Write-Host "打开 DevTools（帮助 → Toggle Developer Tools）Console 应看到 [smart-upload] module loaded" -ForegroundColor Green
+
+Write-Host "无头自动验证（可选）：Tabby.exe --remote-debugging-port=9223 启动后，执行" -ForegroundColor Green
+Write-Host "  & C:\\nvm4w\\nodejs\\node.exe scripts\\cdp-check.mjs  (UPLOAD_ICON_IN_DOM: true 即加载成功)" -ForegroundColor Green

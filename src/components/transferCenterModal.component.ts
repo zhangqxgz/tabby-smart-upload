@@ -2,9 +2,27 @@
  * 传输中心模态框：总览 + 逐文件进度 / 速度 / ETA / 状态 / 取消
  */
 import { Component, ViewEncapsulation } from '@angular/core'
-import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap'
+import { NgbActiveModal, NgbModal } from '@ng-bootstrap/ng-bootstrap'
 import { I18nService } from '../i18n'
 import { TransferCenterService, TransferItem } from '../services/transferCenter.service'
+
+/**
+ * UI 桥接：把服务的 openRequested$ 接到模态框打开动作上。
+ * 放在组件文件里是为了避免 service ↔ component 循环依赖（TDZ 坑）。
+ */
+export function bridgeTransferCenterUi (service: TransferCenterService, modal: NgbModal): void {
+    let openCount = 0
+    service.openRequested$.subscribe(() => {
+        if (openCount > 0) {
+            return
+        }
+        openCount++
+        const ref = modal.open(TransferCenterModalComponent, { size: 'lg', centered: true })
+        ref.result.catch(() => null).finally(() => {
+            openCount--
+        })
+    })
+}
 
 @Component({
     selector: 'su-transfer-center',
