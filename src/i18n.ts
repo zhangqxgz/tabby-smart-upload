@@ -54,7 +54,7 @@ const zhCN: Dict = {
     'up.cancel': '取消',
     'up.ok': '选择文件并上传',
 
-    'notify.notSSH': '当前标签页不是 SSH 会话',
+    'notify.notSSH': '请先切换到 SSH 标签页，再使用「上传到当前目录」',
     'notify.notReady': 'SSH 会话尚未就绪',
     'notify.cwdFail': '目录自动检测注入失败：远端 shell 未上报 CWD。可在「设置 → 智能上传」查看手动配置方法，或在标签页右键菜单重试。',
     'notify.badPath': '远端目录不存在或不可访问：{path}',
@@ -111,7 +111,7 @@ const enUS: Dict = {
     'up.cancel': 'Cancel',
     'up.ok': 'Pick files and upload',
 
-    'notify.notSSH': 'The active tab is not an SSH session',
+    'notify.notSSH': 'Switch to an SSH tab first to use "Upload to current directory"',
     'notify.notReady': 'SSH session is not ready yet',
     'notify.cwdFail': 'CWD auto-injection failed: the remote shell did not report CWD. See Settings → Smart Upload for manual setup, or retry from the tab context menu.',
     'notify.badPath': 'Remote directory does not exist or is not accessible: {path}',

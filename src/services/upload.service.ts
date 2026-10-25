@@ -38,6 +38,20 @@ export function asSSHTab (tab: any): SSHTabLike | null {
     return null
 }
 
+/**
+ * 从 activeTab 解析出真正的终端标签页：
+ * 分屏（SplitTabComponent）时 activeTab 是外壳，需要取当前聚焦的子标签页。
+ */
+export function resolveFocusedTab (tab: any): any {
+    if (!tab || typeof tab !== 'object') {
+        return null
+    }
+    if (typeof tab.getFocusedTab === 'function') {
+        return tab.getFocusedTab() ?? null
+    }
+    return tab
+}
+
 export function hostKeyOf (tab: SSHTabLike): string {
     const o: any = tab.profile?.options ?? {}
     if (o.host) {
@@ -65,9 +79,10 @@ export class UploadService {
     }
 
     async uploadToCwd (): Promise<void> {
-        const tab = asSSHTab(this.app.activeTab)
+        const tab = asSSHTab(resolveFocusedTab(this.app.activeTab))
         if (!tab) {
-            this.notifications.error(this.i18n.t('notify.notSSH'))
+            // 普通提示即可，避免在非 SSH 标签页被误读成"插件报错"
+            this.notifications.notice(this.i18n.t('notify.notSSH'))
             return
         }
         if (!tab.sshSession || !tab.session) {
