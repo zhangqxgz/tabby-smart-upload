@@ -12,7 +12,7 @@
  */
 import { Injectable } from '@angular/core'
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap'
-import { AppService, ConfigService, FileUpload, HotkeysService, NotificationsService, PlatformService } from 'tabby-core'
+import { AppService, ConfigService, DirectoryUpload, FileUpload, HotkeysService, NotificationsService, PlatformService } from 'tabby-core'
 import { SFTPSession } from 'tabby-ssh'
 import { I18nService } from '../i18n'
 import { CwdInjectService } from './cwdInject.service'
@@ -102,7 +102,7 @@ export class UploadService {
             return
         }
 
-        const target = await this.resolveTarget(tab)
+        const target = await this.resolveTargetFor(tab)
         if (!target) {
             return
         }
@@ -143,7 +143,76 @@ export class UploadService {
         }
     }
 
-    private async resolveTarget (tab: SSHTabLike): Promise<string | null> {
+    /**
+     * 拖拽上传入口：把拖入的文件/文件夹树上传到当前目录。
+     * HTMLFileUpload 不会自动进入 fileTransferStarted$，这里手动登记，
+     * 让传输中心能跟踪拖拽上传的进度与取消。
+     */
+    async uploadDrop (tab: SSHTabLike, event: DragEvent): Promise<void> {
+        if (!tab.sshSession || !tab.session) {
+            this.notifications.error(this.i18n.t('notify.notReady'))
+            return
+        }
+        let dropped: DirectoryUpload
+        try {
+            dropped = await this.platform.startUploadFromDragEvent(event, true)
+        } catch {
+            return
+        }
+        if (!dropped.getChildrens().length) {
+            return
+        }
+        const target = await this.resolveTargetFor(tab)
+        if (!target) {
+            return
+        }
+        this.rememberPath(tab, target)
+        const result = { ok: 0, fail: 0 }
+        try {
+            const sftp = await tab.sshSession.openSFTP()
+            await this.uploadTree(sftp, target, dropped, result)
+        } catch (e) {
+            diag('drop:error', { error: String(e) })
+        }
+        diag('drop:done', { target, ...result })
+        if (result.fail === 0 && result.ok > 0) {
+            this.notifications.notice(this.i18n.t('notify.dropSummaryDone', { ok: result.ok }))
+        } else if (result.fail > 0) {
+            this.notifications.error(this.i18n.t('notify.dropSummaryError', { ok: result.ok, fail: result.fail }))
+        }
+    }
+
+    private async uploadTree (
+        sftp: SFTPSession,
+        base: string,
+        dir: DirectoryUpload,
+        result: { ok: number, fail: number },
+    ): Promise<void> {
+        for (const child of dir.getChildrens()) {
+            const name = this.baseName(this.safeName(child as any))
+            const dest = this.joinPosix(base, name)
+            if (child instanceof DirectoryUpload) {
+                try {
+                    await sftp.mkdir(dest)
+                } catch {
+                    // 目录已存在，继续
+                }
+                await this.uploadTree(sftp, dest, child, result)
+            } else {
+                try {
+                    ;(this.platform as any)._registerFileTransfer?.(child)
+                    await sftp.upload(dest, child as FileUpload)
+                    result.ok++
+                    diag('drop:file-ok', { dest })
+                } catch (e) {
+                    result.fail++
+                    diag('drop:file-fail', { dest, error: String(e) })
+                }
+            }
+        }
+    }
+
+    private async resolveTargetFor (tab: SSHTabLike): Promise<string | null> {
         const cfg = this.config.store.smartUpload
         const hostKey = hostKeyOf(tab)
 

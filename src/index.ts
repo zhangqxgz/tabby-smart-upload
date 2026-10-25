@@ -28,6 +28,7 @@ import {
     SmartUploadToolbarProvider,
 } from './providers'
 import { CwdInjectService } from './services/cwdInject.service'
+import { DropZoneService } from './services/dropZone.service'
 import { TransferCenterService } from './services/transferCenter.service'
 import { asSSHTab, hostKeyOf, resolveFocusedTab, UploadService } from './services/upload.service'
 import { diag } from './diag'
@@ -50,6 +51,7 @@ import { UploadPathModalComponent } from './components/uploadPathModal.component
     providers: [
         I18nService,
         CwdInjectService,
+        DropZoneService,
         TransferCenterService,
         UploadService,
         { provide: ConfigProvider, useClass: SmartUploadConfigProvider, multi: true },
@@ -67,9 +69,11 @@ export default class SmartUploadModule {
         transfers: TransferCenterService,
         _upload: UploadService,
         cwdInject: CwdInjectService,
+        dropZone: DropZoneService,
         app: AppService,
     ) {
         bridgeTransferCenterUi(transfers, modal)
+        dropZone.init()
 
         // 诊断入口：通过 CDP / DevTools 现场排查用（不参与正常功能）
         ;(globalThis as any).__smartUpload = {

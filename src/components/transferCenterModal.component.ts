@@ -37,7 +37,7 @@ export function bridgeTransferCenterUi (service: TransferCenterService, modal: N
 </div>
 <div class="modal-body su-tc-body">
     <div class="text-muted text-center py-4" *ngIf="tc.items.length === 0">{{i18n.t('tc.empty')}}</div>
-    <div class="su-tc-row" *ngFor="let item of tc.items" [ngClass]="'st-' + item.status">
+    <div class="su-tc-row" *ngFor="let item of tc.sortedItems" [ngClass]="'st-' + item.status">
         <span class="su-tc-dir" [title]="item.isDownload ? 'download' : 'upload'">{{item.isDownload ? '↓' : '↑'}}</span>
         <div class="su-tc-main">
             <div class="su-tc-name" [title]="item.name">

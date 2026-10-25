@@ -68,6 +68,11 @@ export class TransferCenterService {
         return this.items.filter(x => x.status === 'active').reduce((a, x) => a + x.speed, 0)
     }
 
+    /** 传输列表：最新在前（startedAt 降序，id 兜底） */
+    get sortedItems (): TransferItem[] {
+        return [...this.items].sort((a, b) => b.startedAt - a.startedAt || b.id - a.id)
+    }
+
     /** 请求打开传输中心模态框 */
     requestOpen (): void {
         this.openRequested$.next()

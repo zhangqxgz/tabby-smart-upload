@@ -64,6 +64,9 @@ const zhCN: Dict = {
     'notify.transferError': '{name} 传输失败：{error}',
     'notify.uploadSummaryDone': '上传完成：成功 {ok} 个文件',
     'notify.uploadSummaryError': '上传结束：成功 {ok} 个，失败 {fail} 个（详见传输中心）',
+    'notify.dropSummaryDone': '拖拽上传完成：成功 {ok} 个文件',
+    'notify.dropSummaryError': '拖拽上传结束：成功 {ok} 个，失败 {fail} 个（详见传输中心）',
+    'drop.hint': '松手上传到当前目录',
 }
 
 const enUS: Dict = {
@@ -123,6 +126,9 @@ const enUS: Dict = {
     'notify.transferError': '{name} transfer failed: {error}',
     'notify.uploadSummaryDone': 'Upload complete: {ok} files succeeded',
     'notify.uploadSummaryError': 'Upload finished: {ok} succeeded, {fail} failed (see Transfer Center)',
+    'notify.dropSummaryDone': 'Drop upload complete: {ok} files',
+    'notify.dropSummaryError': 'Drop upload finished: {ok} succeeded, {fail} failed (see Transfer Center)',
+    'drop.hint': 'Drop to upload to the current directory',
 }
 
 @Injectable()

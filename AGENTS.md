@@ -27,6 +27,8 @@
 - bash hook 前置拼接 PROMPT_COMMAND（尾插遇空值/尾分号会语法错误）；tmux 走 DCS 透传（tmux≥3.3 需 allow-passthrough on）；fish 用 --on-event fish_prompt
 - 模态组件：NgbModal.open + 插件 module declarations 即可（插件模块会注入为根模块依赖，组件工厂可解析）；样式用 ViewEncapsulation.None + `su-`/`su-tc-` 前缀
 - 上传复用内置 `SFTPSession.upload`（.tabby-upload 临时文件 + rename）；openSFTP() 每连接实际复用同一 SFTP 通道
+- **拖拽上传**（dropZone.service）：document 捕获阶段监听，命中检测 `div.terminal`、排除 `sftp-panel,[dropzone]`；用 hostView.rootNodes 反查 DOM 到具体 tab（分屏精确定位）；HTMLFileUpload 不会自动进 fileTransferStarted$，需 `platform._registerFileTransfer` 手动登记才能被传输中心跟踪；目录树递归 mkdir + 上传
+- **传输列表顺序**：传输中心 `sortedItems` = startedAt 降序（最新在前）；Tabby 自带 transfers 下拉是最新在最下（无法改内置）
 - **分屏坑（真机实测）**：`app.activeTab` 可能是 SplitTabComponent 外壳（无 sshSession），直接判断会误报"不是 SSH 会话"（红色 toast，用户以为插件坏了）；必须 `resolveFocusedTab()` 先 getFocusedTab() 再判断
 
 ## 当前状态
