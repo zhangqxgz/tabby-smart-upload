@@ -1,0 +1,48 @@
+{
+  "name": "tabby-smart-upload",
+  "version": "0.1.0",
+  "description": "Tabby 智能上传插件：自动注入 CWD 目录上报 + 增强传输中心。Smart upload for Tabby: auto CWD detection via OSC 1337 injection and an enhanced transfer center.",
+  "keywords": [
+    "tabby-plugin",
+    "tabby",
+    "sftp",
+    "upload",
+    "ssh"
+  ],
+  "main": "dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "webpack --progress --color",
+    "watch": "webpack --progress --color --watch",
+    "use-in-tabby": "powershell -NoProfile -ExecutionPolicy Bypass -File ./use-in-tabby.ps1",
+    "prepublishOnly": "npm run build"
+  },
+  "author": "zhangqxgz",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zhangqxgz/tabby-smart-upload.git"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@angular/common": "^15.2.10",
+    "@angular/core": "^15.2.10",
+    "@angular/forms": "^15.2.10",
+    "@angular/platform-browser": "^15.2.10",
+    "@ng-bootstrap/ng-bootstrap": "^14.2.0",
+    "@types/node": "^22.13.10",
+    "rxjs": "^7.8.1",
+    "tabby-core": "1.0.231-nightly.0",
+    "tabby-settings": "1.0.231-nightly.0",
+    "tabby-ssh": "1.0.231-nightly.0",
+    "tabby-terminal": "1.0.231-nightly.0",
+    "ts-loader": "^9.5.2",
+    "typescript": "^4.9.5",
+    "webpack": "^5.98.0",
+    "webpack-cli": "^6.0.1"
+  }
+}
