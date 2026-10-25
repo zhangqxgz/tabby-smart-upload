@@ -3,7 +3,7 @@
  */
 import { Component } from '@angular/core'
 import { ConfigService, NotificationsService, PlatformService } from 'tabby-core'
-import { buildCwdSnippet } from '../services/cwdInject.service'
+import { buildCwdSnippet, buildFishSnippet } from '../services/cwdInject.service'
 import { I18nService } from '../i18n'
 
 @Component({
@@ -26,8 +26,12 @@ import { I18nService } from '../i18n'
 
     <h6 class="mt-4">{{i18n.t('settings.snippetsTitle')}}</h6>
     <div class="text-muted small">{{i18n.t('settings.snippetsHint')}}</div>
-    <pre class="border rounded p-2 mt-2 small" style="white-space: pre-wrap;">{{snippet}}</pre>
-    <button class="btn btn-sm btn-outline-secondary" (click)="copySnippet()">{{i18n.t('settings.copy')}}</button>
+    <div class="text-muted small mt-2">{{i18n.t('settings.snippetBashZsh')}}</div>
+    <pre class="border rounded p-2 mt-1 small" style="white-space: pre-wrap;">{{snippet}}</pre>
+    <button class="btn btn-sm btn-outline-secondary" (click)="copySnippet(snippet)">{{i18n.t('settings.copy')}}</button>
+    <div class="text-muted small mt-3">{{i18n.t('settings.snippetFish')}}</div>
+    <pre class="border rounded p-2 mt-1 small" style="white-space: pre-wrap;">{{fishSnippet}}</pre>
+    <button class="btn btn-sm btn-outline-secondary" (click)="copySnippet(fishSnippet)">{{i18n.t('settings.copy')}}</button>
 
     <h6 class="mt-4">{{i18n.t('settings.tcGroup')}}</h6>
     <div class="form-check form-switch">
@@ -53,6 +57,7 @@ import { I18nService } from '../i18n'
 })
 export class SettingsTabComponent {
     snippet = buildCwdSnippet()
+    fishSnippet = buildFishSnippet()
 
     constructor (
         public config: ConfigService,
@@ -84,8 +89,8 @@ export class SettingsTabComponent {
         this.notifications.notice(this.i18n.t('settings.cleared'))
     }
 
-    copySnippet (): void {
-        this.platform.setClipboard({ text: this.snippet })
+    copySnippet (text: string): void {
+        this.platform.setClipboard({ text })
         this.notifications.notice(this.i18n.t('settings.copied'))
     }
 }

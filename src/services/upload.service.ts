@@ -17,6 +17,7 @@ import { SFTPSession } from 'tabby-ssh'
 import { I18nService } from '../i18n'
 import { CwdInjectService } from './cwdInject.service'
 import { UploadPathModalComponent } from '../components/uploadPathModal.component'
+import { diag } from '../diag'
 
 /** 结构化的 SSH 标签页能力声明 */
 export interface ShellSessionLike {
@@ -81,7 +82,16 @@ export class UploadService {
     }
 
     async uploadToCwd (): Promise<void> {
-        const tab = asSSHTab(resolveFocusedTab(this.app.activeTab))
+        const active: any = this.app.activeTab
+        const focused = resolveFocusedTab(active)
+        const tab = asSSHTab(focused)
+        diag('upload:start', {
+            activeTab: active?.constructor?.name,
+            focusedTab: focused?.constructor?.name,
+            isSSH: !!tab,
+            hasSession: !!tab?.session,
+            hasSshSession: !!tab?.sshSession,
+        })
         if (!tab) {
             // 普通提示即可，避免在非 SSH 标签页被误读成"插件报错"
             this.notifications.notice(this.i18n.t('notify.notSSH'))
@@ -113,13 +123,16 @@ export class UploadService {
         let fail = 0
         await this.mapWithConcurrency(transfers, concurrency, async t => {
             const name = this.baseName(this.safeName(t))
+            const dest = this.joinPosix(target, name)
+            diag('upload:file-start', { dest })
             try {
                 const sftp = await tab.sshSession!.openSFTP()
-                await sftp.upload(this.joinPosix(target, name), t)
+                await sftp.upload(dest, t)
                 ok++
-            } catch {
-                // sftp.upload 内部已设置状态并清理临时文件；失败明细见传输中心
+                diag('upload:file-ok', { dest })
+            } catch (e) {
                 fail++
+                diag('upload:file-fail', { dest, error: String(e) })
             }
         })
 
@@ -149,11 +162,14 @@ export class UploadService {
         }
         if (!target) {
             const fallback = tab.profile?.options?.cwd || cfg?.fallbackPath || '/'
+            diag('target:prompt-modal', { fallback, hostKey })
             target = await this.askPath(String(fallback))
             if (!target) {
+                diag('target:modal-cancelled')
                 return null
             }
         }
+        diag('target:resolved', { target })
 
         if (target.startsWith('~')) {
             this.notifications.error(this.i18n.t('notify.badPath', { path: target }))
