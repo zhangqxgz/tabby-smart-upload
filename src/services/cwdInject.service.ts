@@ -76,6 +76,20 @@ const VERIFY_WINDOW_MS = 2000
 /** 验证轮询间隔 */
 const POLL_INTERVAL_MS = 120
 
+/**
+ * 自动注入用的紧凑单行命令（无 base64：命令直接写入 PTY，引号原样传递）。
+ * 兼容 bash / zsh；tmux 内走 DCS 透传；带幂等守卫，重复注入不会被叠加。
+ * 屏幕上只会回显这一行（shell 行编辑器自己回显输入，客户端无法隐藏）。
+ */
+export function buildInjectCommand (): string {
+    return ' ' + [
+        '__tsu_cwd(){ if [ -n "$TMUX" ];then printf \'\\033Ptmux;\\033\\033]1337;CurrentDir=%s\\007\\033\\\\\' "$PWD";else printf \'\\033]1337;CurrentDir=%s\\007\' "$PWD";fi;};',
+        'if [ -n "$BASH_VERSION" ];then case ";$PROMPT_COMMAND;" in *__tsu_cwd*) ;; *) PROMPT_COMMAND="__tsu_cwd${PROMPT_COMMAND:+;$PROMPT_COMMAND}";; esac;',
+        'elif [ -n "$ZSH_VERSION" ];then case "${PROMPT_COMMAND[*]}" in *__tsu_cwd*) ;; *) PROMPT_COMMAND+=(__tsu_cwd);; esac;',
+        'fi;__tsu_cwd',
+    ].join('') + '\n'
+}
+
 function sleep (ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms))
 }
@@ -120,9 +134,16 @@ export class CwdInjectService {
             return true
         }
         try {
-            const b64 = Buffer.from(buildCwdSnippet(), 'utf-8').toString('base64')
-            const line = ' eval "$(printf %s \'' + b64 + '\' | base64 -d)" 2>/dev/null # tabby-smart-upload\n'
+            const line = buildInjectCommand()
             for (let attempt = 1; attempt <= INJECT_ATTEMPTS; attempt++) {
+                // 每次尝试前先看远端是否已自行上报（dotfiles 里配过钩子 → 跳过注入，零回显噪音）
+                const pre = await this.waitReported(session, attempt === 1 ? 3500 : 700)
+                if (pre) {
+                    this.injected.add(session)
+                    this.logger.info('CWD already reported for', hostKey, '->', pre, '- skip injection')
+                    diag('inject:skip', { hostKey, attempt, cwd: pre })
+                    return true
+                }
                 session.feedFromTerminal(Buffer.from(line, 'utf-8'))
                 diag('inject:attempt', { attempt })
                 const cwd = await this.waitReported(session, VERIFY_WINDOW_MS)

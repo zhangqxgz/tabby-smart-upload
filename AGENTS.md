@@ -20,7 +20,7 @@
 - npm 版 tabby-* typings 滞后源码（如 FileTransfer 无 getStatus）→ 防御式 `(x as any).method?.()`
 - **TDZ 坑（真机实测）**：service ↔ component 循环依赖（service 里 ngbModal.open(组件) + 组件构造器 DI 该 service）打包后报 `Cannot access 'X' before initialization`；解法 = service 只发 openRequested$ Subject，组件文件导出 bridgeTransferCenterUi()，模块构造函数接线；无头验证用 scripts/cdp-check.mjs（Tabby 加 --remote-debugging-port=9223，Windows 侧 node 运行，看 UPLOAD_ICON_IN_DOM: true）
 - Tabby 原生 i18n .po 不含插件键（缺失回显 key）→ 自带 I18nService 词典（zh*/en），按 `config.store.language` 切换
-- CWD 注入：` eval "$(printf %s '<b64>' | base64 -d)" 2>/dev/null # tabby-smart-upload\n`，会话建立后重试注入（SSHShellSession.write 在 shell 通道未就绪时**静默丢弃**，sessionChanged$ 早于认证完成 → 首次注入必丢，必须重试 8 次×2s）；片段末尾立即调用一次上报函数，验证不依赖提示符刷新；失败按主机（user@host:port）提示一次记入 failedHosts
+- CWD 注入：无需 base64（命令直接写 PTY，引号原样传递）→ 紧凑单行 `__tsu_cwd(){…};if [ -n "$BASH_VERSION" ]…elif [ -n "$ZSH_VERSION" ]…fi;__tsu_cwd`（约 430 字符，可读、幂等守卫）；会话建立后重试注入（SSHShellSession.write 在 shell 通道未就绪时**静默丢弃**，sessionChanged$ 早于认证完成 → 必须重试 8 次×2s）；每次尝试前先检查是否已有上报——**dotfiles 配过钩子的主机自动跳过注入（零回显）**；失败按主机（user@host:port）提示一次记入 failedHosts
 - **shell 语法解析坑（真机实测）**：shell 会先完整解析整段代码再执行分支——fish 的 `function --on-event`/`end` 在 bash 中是语法错误，混在一个片段里会让**整个 eval 失败**（bash 分支也不执行）。自动注入只放 bash+zsh（互可解析）；fish 只能在设置页手动配置（buildFishSnippet）
 - **Tabby Vault 锁定时**：SSH 标签页显示 Reconnect，reconnect() 会卡在等主密码，session 始终为 null；CDP 验证脚本默认**不重载页面**（RELOAD=1 才重载），避免断开用户会话
 - **点击上传时按需探测 CWD**（probeCwd）：钩子要等下一次提示符才上报，刚连接/钩子失效时会误弹路径框 → 点击后发 ` printf '\033]1337;CurrentDir=%s\007' "$PWD"`（Tabby 拦截 OSC 不上屏，仅命令行回显），150ms 轮询取回；探测失败才走记忆/弹窗
