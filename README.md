@@ -35,7 +35,8 @@ Tabby 插件，解决上传体验的两个痛点：
 
 ## 安装
 
-Tabby → 设置 → 插件 → 搜索 `tabby-smart-upload`（发布到 npm 后）。
+- **Tabby 插件市场**：设置 → 插件 → 搜索 `tabby-smart-upload` 安装
+- **npm**：https://www.npmjs.com/package/tabby-smart-upload
 
 开发调试见 [docs/2026-10-25-开发调试手册.md](docs/2026-10-25-开发调试手册.md)。
 

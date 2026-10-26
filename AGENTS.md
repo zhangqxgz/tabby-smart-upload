@@ -41,8 +41,10 @@
 - [x] M2 CWD 自动注入 + 验证回退
 - [x] M3 传输中心（聚合内置传输）
 - [x] M4 上传到当前目录（cwd→按主机记忆→弹窗；并发 1-8）
-- [ ] M5 打磨：npm 发布、（可选）文件夹上传、真机回归
-- 构建通过（webpack production，13 个 TS 错误已清零）
+- [x] M5 **已发布 npm：`tabby-smart-upload@1.0.0`（2026-10-26，maintainer acasnxx，账号 qxcn@me.com）**
+  - npm 页面 https://www.npmjs.com/package/tabby-smart-upload
+  - 发布凭据：granular token 存本机 `~/.npmrc`（600）与全局记忆，**严禁入库**；发布需 2FA，该 token 已开 bypass
+  - 发布后 PUT 返回 202（npm 异步审核），约 2~3 分钟后 registry 才出现真实版本（期间 `npm view` 显示 `0.0.0-stage` 占位，勿慌）
 
 ## 约定
 - 内部文档命名：`docs/YYYY-MM-DD-中文标题.md`
