@@ -9,7 +9,7 @@
  * 双向引用在打包后会产生 TDZ 运行时错误），打开模态框通过
  * openRequested$ 由 transferCenterModal.component.ts 里的 bridgeTransferCenterUi 桥接。
  */
-import { Injectable } from '@angular/core'
+import { ApplicationRef, Injectable } from '@angular/core'
 import { Subject } from 'rxjs'
 import { ConfigService, FileDownload, FileTransfer, HotkeysService, NotificationsService, PlatformService } from 'tabby-core'
 import { I18nService } from '../i18n'
@@ -50,6 +50,7 @@ export class TransferCenterService {
         private notifications: NotificationsService,
         private hotkeys: HotkeysService,
         private i18n: I18nService,
+        private appRef: ApplicationRef,
     ) {
         this.platform.fileTransferStarted$.subscribe(t => this.add(t))
         setInterval(() => this.sample(), SAMPLE_INTERVAL_MS)
@@ -118,6 +119,36 @@ export class TransferCenterService {
         }
         if (this.config.store.smartUpload?.autoOpenTransferCenter) {
             this.requestOpen()
+        }
+        // Tabby 自带的传输下拉把新传输追加在末尾（最新在最下面），
+        // 这里在下一轮事件循环把它的数组原地重排为最新在前。
+        setTimeout(() => this.reorderBuiltinTransfers(), 0)
+    }
+
+    /**
+     * 重排 Tabby 自带传输下拉（AppRoot 的 activeTransfers 数组）。
+     * 内置模板按数组顺序渲染，直接原地 splice 后触发一次变更检测即可；
+     * 若未来内置结构变化（属性不存在），静默跳过，不影响插件自身功能。
+     */
+    private reorderBuiltinTransfers (): void {
+        try {
+            if (!this.config.store.smartUpload?.reorderBuiltinTransfers) {
+                return
+            }
+            const root: any = (this.appRef as any).components?.[0]
+            const arr: any[] | undefined = root?.activeTransfers
+            if (!Array.isArray(arr) || arr.length < 2) {
+                return
+            }
+            const startedAt = new Map<FileTransfer, number>()
+            for (const item of this.items) {
+                startedAt.set(item.transfer, item.startedAt)
+            }
+            const sorted = [...arr].sort((a, b) => (startedAt.get(b) ?? 0) - (startedAt.get(a) ?? 0))
+            arr.splice(0, arr.length, ...sorted)
+            this.appRef.tick()
+        } catch {
+            // 内置结构变化则静默跳过
         }
     }
 

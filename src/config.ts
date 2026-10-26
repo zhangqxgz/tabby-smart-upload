@@ -10,6 +10,8 @@ export interface SmartUploadConfig {
     autoOpenTransferCenter: boolean
     /** 传输完成/失败时弹出通知 */
     notifyOnComplete: boolean
+    /** Tabby 自带传输下拉也按最新在前排序 */
+    reorderBuiltinTransfers: boolean
     /** 按主机记忆上传目录 */
     rememberPathPerHost: boolean
     /** 上传并发数 1-8 */
@@ -40,6 +42,7 @@ export class SmartUploadConfigProvider extends ConfigProvider {
             notifyInjectFailure: true,
             autoOpenTransferCenter: false,
             notifyOnComplete: true,
+            reorderBuiltinTransfers: true,
             rememberPathPerHost: true,
             uploadConcurrency: 2,
             fallbackPath: '/',

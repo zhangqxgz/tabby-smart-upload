@@ -42,6 +42,11 @@ import { I18nService } from '../i18n'
         <input class="form-check-input" type="checkbox" id="suNotifyDone" [(ngModel)]="c.notifyOnComplete" (ngModelChange)="save()">
         <label class="form-check-label" for="suNotifyDone">{{i18n.t('settings.notifyDone')}}</label>
     </div>
+    <div class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" id="suReorderBuiltin" [(ngModel)]="c.reorderBuiltinTransfers" (ngModelChange)="save()">
+        <label class="form-check-label" for="suReorderBuiltin">{{i18n.t('settings.reorderBuiltin')}}</label>
+    </div>
+    <div class="text-muted small">{{i18n.t('settings.reorderBuiltinHint')}}</div>
 
     <h6 class="mt-4">{{i18n.t('settings.upGroup')}}</h6>
     <label class="form-label">{{i18n.t('settings.concurrency')}}</label>
