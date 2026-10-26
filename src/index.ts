@@ -17,6 +17,7 @@ import TabbyCoreModule, {
 } from 'tabby-core'
 import { SettingsTabProvider } from 'tabby-settings'
 import { TerminalDecorator } from 'tabby-terminal'
+import { SFTPContextMenuItemProvider } from 'tabby-ssh'
 
 import { SmartUploadConfigProvider } from './config'
 import { SmartUploadDecorator } from './decorator'
@@ -25,9 +26,11 @@ import {
     SmartUploadContextMenuProvider,
     SmartUploadHotkeyProvider,
     SmartUploadSettingsTabProvider,
+    SmartUploadSftpContextMenuProvider,
     SmartUploadToolbarProvider,
 } from './providers'
 import { CwdInjectService } from './services/cwdInject.service'
+import { DownloadService } from './services/download.service'
 import { DropZoneService } from './services/dropZone.service'
 import { TransferCenterService } from './services/transferCenter.service'
 import { asSSHTab, hostKeyOf, resolveFocusedTab, UploadService } from './services/upload.service'
@@ -54,11 +57,13 @@ import { UploadPathModalComponent } from './components/uploadPathModal.component
         DropZoneService,
         TransferCenterService,
         UploadService,
+        DownloadService,
         { provide: ConfigProvider, useClass: SmartUploadConfigProvider, multi: true },
         { provide: SettingsTabProvider, useClass: SmartUploadSettingsTabProvider, multi: true },
         { provide: HotkeyProvider, useClass: SmartUploadHotkeyProvider, multi: true },
         { provide: ToolbarButtonProvider, useClass: SmartUploadToolbarProvider, multi: true },
         { provide: TabContextMenuItemProvider, useClass: SmartUploadContextMenuProvider, multi: true },
+        { provide: SFTPContextMenuItemProvider, useClass: SmartUploadSftpContextMenuProvider, multi: true },
         { provide: TerminalDecorator, useClass: SmartUploadDecorator, multi: true },
     ],
 })

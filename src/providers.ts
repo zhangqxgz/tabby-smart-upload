@@ -11,9 +11,11 @@ import {
     ToolbarButtonProvider,
 } from 'tabby-core'
 import { SettingsTabProvider } from 'tabby-settings'
+import { SFTPContextMenuItemProvider, SFTPFile, SFTPPanelComponent } from 'tabby-ssh'
 import { I18nService } from './i18n'
 import { ICON_TRANSFERS, ICON_UPLOAD } from './icons'
 import { CwdInjectService, ShellSessionLike } from './services/cwdInject.service'
+import { DownloadService } from './services/download.service'
 import { TransferCenterService } from './services/transferCenter.service'
 import { asSSHTab, hostKeyOf, UploadService } from './services/upload.service'
 import { SettingsTabComponent } from './components/settingsTab.component'
@@ -105,5 +107,30 @@ export class SmartUploadSettingsTabProvider extends SettingsTabProvider {
 
     getComponentType (): any {
         return SettingsTabComponent
+    }
+}
+
+/** 内置 SFTP 面板右键菜单扩展：下载到本地（免弹窗） */
+@Injectable()
+export class SmartUploadSftpContextMenuProvider extends SFTPContextMenuItemProvider {
+    weight = 50
+
+    constructor (
+        private download: DownloadService,
+        private i18n: I18nService,
+    ) {
+        super()
+    }
+
+    async getItems (item: SFTPFile, panel: SFTPPanelComponent): Promise<MenuItemOptions[]> {
+        const run = (): void => {
+            void this.download.downloadItem(panel.sftp, item, panel.path)
+        }
+        return [{
+            label: item.isDirectory
+                ? this.i18n.t('ctx.downloadFolderToFolder')
+                : this.i18n.t('ctx.downloadToFolder'),
+            click: run,
+        }]
     }
 }

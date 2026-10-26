@@ -68,6 +68,11 @@ import { I18nService } from '../i18n'
     </div>
     <label class="form-label mt-2">{{i18n.t('settings.fallbackPath')}}</label>
     <input type="text" class="form-control w-auto" [(ngModel)]="c.fallbackPath" (ngModelChange)="save()">
+
+    <h6 class="mt-4">{{i18n.t('settings.downloadGroup')}}</h6>
+    <label class="form-label">{{i18n.t('settings.downloadDir')}}</label>
+    <input type="text" class="form-control w-auto" [(ngModel)]="c.downloadDir" (ngModelChange)="save()">
+    <div class="text-muted small">{{i18n.t('settings.downloadDirHint')}}</div>
 </div>`,
 })
 export class SettingsTabComponent {

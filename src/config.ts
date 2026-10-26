@@ -23,6 +23,8 @@ export interface SmartUploadConfig {
     uploadConcurrency: number
     /** 同名文件冲突策略 */
     conflictPolicy: ConflictPolicy
+    /** 默认下载目录（留空 = ~/Downloads） */
+    downloadDir: string
     /** 目录未知时的默认路径（须绝对路径） */
     fallbackPath: string
     /** 主机 → 上次成功使用的上传目录 */
@@ -55,6 +57,7 @@ export class SmartUploadConfigProvider extends ConfigProvider {
             rememberPathPerHost: true,
             uploadConcurrency: 2,
             conflictPolicy: 'overwrite' as ConflictPolicy,
+            downloadDir: '',
             fallbackPath: '/',
             pathMemory: {},
             failedHosts: [],

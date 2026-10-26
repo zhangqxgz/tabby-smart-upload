@@ -32,6 +32,7 @@
 - 上传复用内置 `SFTPSession.upload`（.tabby-upload 临时文件 + rename）；openSFTP() 每连接实际复用同一 SFTP 通道
 - **拖拽上传**（dropZone.service）：document 捕获阶段监听，命中检测 `div.terminal`、排除 `sftp-panel,[dropzone]`；用 hostView.rootNodes 反查 DOM 到具体 tab（分屏精确定位）；目录树递归 mkdir + 上传
 - **上传增强**：同名冲突策略（overwrite/skip/rename，stat 判重）、文件夹选择上传（startUploadDirectory + 递归树）、失败重试（ElectronFileUpload.filePath → startUpload({paths}) 重新读取本地文件，闭包挂在 TransferItem.retry 上，避免 service 循环依赖）
+- **下载**（download.service）：扩展内置 SFTP 面板右键（SFTPContextMenuItemProvider）；startDownload 第 4 参 filePath 跳过保存框（运行时支持，类型未暴露）；文件夹递归下载；本地冲突策略复用 conflictPolicy；Windows 非法字符清洗
 - **传输列表顺序**：传输中心 `sortedItems` = startedAt 降序（最新在前）；**内置传输下拉**通过 `ApplicationRef.components[0].activeTransfers`（AppRoot 公开属性，1.0.238 确认存在）原地 splice 重排 + tick，实现"最新在前"（设置项 reorderBuiltinTransfers 可关，内置结构变化时静默跳过）
 - **Tabby 自动更新坑（真机）**：electron-updater 下载好新版本后在**退出时静默安装**（pending 目录 `%LOCALAPPDATA%\tabby-updater\pending`），安装期间窗口消失、随后以新版本重启——看起来像"闪退"，实为升级流程；核对 `(Get-Item Tabby.exe).VersionInfo.ProductVersion` 与 `%APPDATA%\tabby\log.txt` 末尾是否 `module loaded`/`CWD reported for` 即可确认插件无恙。Keygen 更新检查报错（ERR_NAME_NOT_RESOLVED/代理断）无害
 - **分屏坑（真机实测）**：`app.activeTab` 可能是 SplitTabComponent 外壳（无 sshSession），直接判断会误报"不是 SSH 会话"（红色 toast，用户以为插件坏了）；必须 `resolveFocusedTab()` 先 getFocusedTab() 再判断
@@ -41,7 +42,7 @@
 - [x] M2 CWD 自动注入 + 验证回退
 - [x] M3 传输中心（聚合内置传输）
 - [x] M4 上传到当前目录（cwd→按主机记忆→弹窗；并发 1-8）
-- [x] M5 **已发布 npm：`tabby-smart-upload@1.0.0`（2026-10-26，maintainer acasnxx，账号 qxcn@me.com）**
+- [x] M5 **已发布 npm**：1.0.0（2026-10-26）→ 1.1.0（新增下载，2026-10-26）
   - npm 页面 https://www.npmjs.com/package/tabby-smart-upload
   - 发布凭据：granular token 存本机 `~/.npmrc`（600）与全局记忆，**严禁入库**；发布需 2FA，该 token 已开 bypass
   - 发布后 PUT 返回 202（npm 异步审核），约 2~3 分钟后 registry 才出现真实版本（期间 `npm view` 显示 `0.0.0-stage` 占位，勿慌）

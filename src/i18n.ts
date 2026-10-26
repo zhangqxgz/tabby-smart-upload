@@ -12,6 +12,8 @@ const zhCN: Dict = {
     'toolbar.transfers': '传输中心',
     'ctx.uploadToCwd': '上传到当前目录',
     'ctx.uploadFolderToCwd': '上传文件夹到当前目录',
+    'ctx.downloadToFolder': '下载到本地文件夹（免弹窗）',
+    'ctx.downloadFolderToFolder': '下载整个文件夹到本地',
     'ctx.transferCenter': '打开传输中心',
     'ctx.retryCwd': '重试 CWD 目录检测注入',
     'hotkey.uploadToCwd': '智能上传：上传到当前目录',
@@ -45,6 +47,9 @@ const zhCN: Dict = {
     'settings.conflictRename': '自动改名（name (1).ext）',
     'settings.rememberPath': '按主机记忆上传目录',
     'settings.fallbackPath': '目录未知时的默认路径（须为绝对路径）',
+    'settings.downloadGroup': '下载',
+    'settings.downloadDir': '默认下载目录（留空 = ~/Downloads）',
+    'settings.downloadDirHint': '在内置 SFTP 面板右键文件/文件夹 →「下载到本地文件夹」时直接存到这里，不弹保存框；文件夹会递归下载。同名文件按上面的冲突策略处理。',
 
     'tc.title': '传输中心',
     'tc.active': '{n} 项进行中',
@@ -78,6 +83,8 @@ const zhCN: Dict = {
     'notify.dropSummaryDone': '拖拽上传完成：成功 {ok} 个文件',
     'notify.dropSummaryError': '拖拽上传结束：成功 {ok} 个，失败 {fail} 个（详见传输中心）',
     'notify.uploadSkipped': '（跳过已存在 {skip} 个）',
+    'notify.downloadSummaryDone': '下载完成：成功 {ok} 个文件',
+    'notify.downloadSummaryError': '下载结束：成功 {ok} 个，失败 {fail} 个',
     'drop.hint': '松手上传到当前目录',
 }
 
@@ -86,6 +93,8 @@ const enUS: Dict = {
     'toolbar.transfers': 'Transfer center',
     'ctx.uploadToCwd': 'Upload to current directory',
     'ctx.uploadFolderToCwd': 'Upload folder to current directory',
+    'ctx.downloadToFolder': 'Download to local folder (no dialog)',
+    'ctx.downloadFolderToFolder': 'Download entire folder',
     'ctx.transferCenter': 'Open transfer center',
     'ctx.retryCwd': 'Retry CWD detection injection',
     'hotkey.uploadToCwd': 'Smart upload: upload to current directory',
@@ -119,6 +128,9 @@ const enUS: Dict = {
     'settings.conflictRename': 'Auto rename (name (1).ext)',
     'settings.rememberPath': 'Remember upload directory per host',
     'settings.fallbackPath': 'Default path when directory is unknown (must be absolute)',
+    'settings.downloadGroup': 'Download',
+    'settings.downloadDir': 'Default download folder (empty = ~/Downloads)',
+    'settings.downloadDirHint': 'Right-click a file/folder in the built-in SFTP panel → "Download to local folder" saves it here directly without a save dialog; folders are downloaded recursively. Existing files follow the conflict policy above.',
 
     'tc.title': 'Transfer Center',
     'tc.active': '{n} active',
@@ -152,6 +164,8 @@ const enUS: Dict = {
     'notify.dropSummaryDone': 'Drop upload complete: {ok} files',
     'notify.dropSummaryError': 'Drop upload finished: {ok} succeeded, {fail} failed (see Transfer Center)',
     'notify.uploadSkipped': ' (skipped {skip} existing)',
+    'notify.downloadSummaryDone': 'Download complete: {ok} files',
+    'notify.downloadSummaryError': 'Download finished: {ok} succeeded, {fail} failed',
     'drop.hint': 'Drop to upload to the current directory',
 }
 
