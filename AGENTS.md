@@ -29,6 +29,7 @@
 - 上传复用内置 `SFTPSession.upload`（.tabby-upload 临时文件 + rename）；openSFTP() 每连接实际复用同一 SFTP 通道
 - **拖拽上传**（dropZone.service）：document 捕获阶段监听，命中检测 `div.terminal`、排除 `sftp-panel,[dropzone]`；用 hostView.rootNodes 反查 DOM 到具体 tab（分屏精确定位）；HTMLFileUpload 不会自动进 fileTransferStarted$，需 `platform._registerFileTransfer` 手动登记才能被传输中心跟踪；目录树递归 mkdir + 上传
 - **传输列表顺序**：传输中心 `sortedItems` = startedAt 降序（最新在前）；Tabby 自带 transfers 下拉是最新在最下（无法改内置）
+- **Tabby 自动更新坑（真机）**：electron-updater 下载好新版本后在**退出时静默安装**（pending 目录 `%LOCALAPPDATA%\tabby-updater\pending`），安装期间窗口消失、随后以新版本重启——看起来像"闪退"，实为升级流程；核对 `(Get-Item Tabby.exe).VersionInfo.ProductVersion` 与 `%APPDATA%\tabby\log.txt` 末尾是否 `module loaded`/`CWD reported for` 即可确认插件无恙。Keygen 更新检查报错（ERR_NAME_NOT_RESOLVED/代理断）无害
 - **分屏坑（真机实测）**：`app.activeTab` 可能是 SplitTabComponent 外壳（无 sshSession），直接判断会误报"不是 SSH 会话"（红色 toast，用户以为插件坏了）；必须 `resolveFocusedTab()` 先 getFocusedTab() 再判断
 
 ## 当前状态
