@@ -1,14 +1,12 @@
 /**
- * 上传到当前目录服务（模块 B 上传链路）
+ * 上传服务：上传到当前目录（文件 / 文件夹 / 拖拽）
  *
- * 流程：解析目标目录（getWorkingDirectory → 按主机记忆 → 弹窗询问）→
- *       系统文件选择器 → 受限并发地通过 SFTPSession.upload 上传
- *       （复用内置的 .tabby-upload 临时文件 + rename 安全语义，进度与
- *       取消经由 FileTransfer 状态机被传输中心自动跟踪）。
- *
- * 说明：npm 版 tabby-ssh 类型声明未导出 SSHTabComponent（部分旧版运行时
- * 同样不导出），因此这里用结构化类型 + 鸭式判断（存在 sshSession 即 SSH
- * 标签页），不依赖该符号的导出。
+ * 能力：
+ * - 目录解析：终端上报 → 按需探测 → 按主机记忆 → 弹窗询问
+ * - 同名冲突策略：覆盖 / 跳过 / 自动改名
+ * - 受限并发；失败项可在传输中心重试（需要本地路径，来自 ElectronFileUpload.filePath）
+ * - 传输中心跟踪：内置 startUpload / 拖拽已在 1.0.238 自动登记，文件夹选择器的
+ *   ElectronFileUpload 不会，这里按需补登记（hasTransfer 判重，避免一条文件两条记录）
  */
 import { Injectable } from '@angular/core'
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap'
@@ -16,50 +14,18 @@ import { AppService, ConfigService, DirectoryUpload, FileUpload, HotkeysService,
 import { SFTPSession } from 'tabby-ssh'
 import { I18nService } from '../i18n'
 import { CwdInjectService } from './cwdInject.service'
+import { TransferCenterService } from './transferCenter.service'
 import { UploadPathModalComponent } from '../components/uploadPathModal.component'
 import { diag } from '../diag'
+import { asSSHTab, hostKeyOf, resolveFocusedTab, SSHTabLike } from '../types'
 
-/** 结构化的 SSH 标签页能力声明 */
-export interface ShellSessionLike {
-    getWorkingDirectory?: () => Promise<string | null>
-    feedFromTerminal (data: Buffer): void
-}
+export { asSSHTab, hostKeyOf, resolveFocusedTab } from '../types'
+export type { ShellSessionLike, SSHTabLike } from '../types'
 
-export interface SSHTabLike {
-    title?: string
-    profile?: any
-    session?: ShellSessionLike | null
-    sshSession?: { openSFTP (): Promise<SFTPSession> } | null
-}
-
-/** 鸭式判断：SSH 标签页一定有 sshSession 属性 */
-export function asSSHTab (tab: any): SSHTabLike | null {
-    if (tab && typeof tab === 'object' && 'sshSession' in tab) {
-        return tab as SSHTabLike
-    }
-    return null
-}
-
-/**
- * 从 activeTab 解析出真正的终端标签页：
- * 分屏（SplitTabComponent）时 activeTab 是外壳，需要取当前聚焦的子标签页。
- */
-export function resolveFocusedTab (tab: any): any {
-    if (!tab || typeof tab !== 'object') {
-        return null
-    }
-    if (typeof tab.getFocusedTab === 'function') {
-        return tab.getFocusedTab() ?? null
-    }
-    return tab
-}
-
-export function hostKeyOf (tab: SSHTabLike): string {
-    const o: any = tab.profile?.options ?? {}
-    if (o.host) {
-        return `${o.user ?? ''}@${o.host}:${o.port ?? 22}`
-    }
-    return tab.title ?? 'unknown'
+interface UploadStats {
+    ok: number
+    fail: number
+    skip: number
 }
 
 @Injectable()
@@ -73,27 +39,21 @@ export class UploadService {
         private modal: NgbModal,
         private i18n: I18nService,
         private cwdInject: CwdInjectService,
+        private transferCenter: TransferCenterService,
     ) {
         this.hotkeys.hotkey$.subscribe(h => {
             if (h === 'smart-upload-to-cwd') {
                 void this.uploadToCwd()
+            } else if (h === 'smart-upload-folder-to-cwd') {
+                void this.uploadFolderToCwd()
             }
         })
     }
 
+    /** 上传文件（可多选）到当前目录 */
     async uploadToCwd (): Promise<void> {
-        const active: any = this.app.activeTab
-        const focused = resolveFocusedTab(active)
-        const tab = asSSHTab(focused)
-        diag('upload:start', {
-            activeTab: active?.constructor?.name,
-            focusedTab: focused?.constructor?.name,
-            isSSH: !!tab,
-            hasSession: !!tab?.session,
-            hasSshSession: !!tab?.sshSession,
-        })
+        const tab = this.activeSSHTab()
         if (!tab) {
-            // 普通提示即可，避免在非 SSH 标签页被误读成"插件报错"
             this.notifications.notice(this.i18n.t('notify.notSSH'))
             return
         }
@@ -118,35 +78,57 @@ export class UploadService {
         }
         this.rememberPath(tab, target)
 
+        const stats: UploadStats = { ok: 0, fail: 0, skip: 0 }
         const concurrency = Math.min(8, Math.max(1, Number(this.config.store.smartUpload?.uploadConcurrency) || 2))
-        let ok = 0
-        let fail = 0
-        await this.mapWithConcurrency(transfers, concurrency, async t => {
-            const name = this.baseName(this.safeName(t))
-            const dest = this.joinPosix(target, name)
-            diag('upload:file-start', { dest })
-            try {
-                const sftp = await tab.sshSession!.openSFTP()
-                await sftp.upload(dest, t)
-                ok++
-                diag('upload:file-ok', { dest })
-            } catch (e) {
-                fail++
-                diag('upload:file-fail', { dest, error: String(e) })
-            }
+        const sftp = await tab.sshSession.openSFTP()
+        await this.mapWithConcurrency(transfers, concurrency, async (t: FileUpload) => {
+            await this.uploadOneFile(tab!, sftp, target, t, stats)
         })
+        this.notifySummary('notify.uploadSummaryDone', 'notify.uploadSummaryError', stats)
+    }
 
-        if (fail === 0) {
-            this.notifications.notice(this.i18n.t('notify.uploadSummaryDone', { ok }))
-        } else {
-            this.notifications.error(this.i18n.t('notify.uploadSummaryError', { ok, fail }))
+    /** 上传文件夹到当前目录（保留目录结构） */
+    async uploadFolderToCwd (): Promise<void> {
+        const tab = this.activeSSHTab()
+        if (!tab) {
+            this.notifications.notice(this.i18n.t('notify.notSSH'))
+            return
         }
+        if (!tab.sshSession || !tab.session) {
+            this.notifications.error(this.i18n.t('notify.notReady'))
+            return
+        }
+
+        const target = await this.resolveTargetFor(tab)
+        if (!target) {
+            return
+        }
+
+        let picked: DirectoryUpload
+        try {
+            picked = await this.platform.startUploadDirectory()
+        } catch {
+            return
+        }
+        if (!picked.getChildrens().length) {
+            return
+        }
+        this.rememberPath(tab, target)
+
+        const stats: UploadStats = { ok: 0, fail: 0, skip: 0 }
+        try {
+            const sftp = await tab.sshSession.openSFTP()
+            await this.uploadTree(tab, sftp, target, picked, stats)
+        } catch (e) {
+            diag('folder:error', { error: String(e) })
+        }
+        this.notifySummary('notify.uploadSummaryDone', 'notify.uploadSummaryError', stats)
     }
 
     /**
      * 拖拽上传入口：把拖入的文件/文件夹树上传到当前目录。
-     * HTMLFileUpload 不会自动进入 fileTransferStarted$，这里手动登记，
-     * 让传输中心能跟踪拖拽上传的进度与取消。
+     * 1.0.238 起内置 startUploadFromDragEvent 会自动登记 fileTransferStarted$，
+     * 这里不再重复登记（此前重复登记导致一条文件出现两条记录）。
      */
     async uploadDrop (tab: SSHTabLike, event: DragEvent): Promise<void> {
         if (!tab.sshSession || !tab.session) {
@@ -167,49 +149,132 @@ export class UploadService {
             return
         }
         this.rememberPath(tab, target)
-        const result = { ok: 0, fail: 0 }
+        const stats: UploadStats = { ok: 0, fail: 0, skip: 0 }
         try {
             const sftp = await tab.sshSession.openSFTP()
-            await this.uploadTree(sftp, target, dropped, result)
+            await this.uploadTree(tab, sftp, target, dropped, stats)
         } catch (e) {
             diag('drop:error', { error: String(e) })
         }
-        diag('drop:done', { target, ...result })
-        if (result.fail === 0 && result.ok > 0) {
-            this.notifications.notice(this.i18n.t('notify.dropSummaryDone', { ok: result.ok }))
-        } else if (result.fail > 0) {
-            this.notifications.error(this.i18n.t('notify.dropSummaryError', { ok: result.ok, fail: result.fail }))
+        diag('drop:done', { target, ...stats })
+        this.notifySummary('notify.dropSummaryDone', 'notify.dropSummaryError', stats)
+    }
+
+    /** 单个文件上传（含冲突策略 / 补登记 / 重试挂载） */
+    private async uploadOneFile (tab: SSHTabLike, sftp: SFTPSession, dir: string, t: FileUpload, stats: UploadStats): Promise<void> {
+        const name = this.baseName(this.safeName(t))
+        const { dest, skip } = await this.resolveDestination(sftp, dir, name)
+        if (skip) {
+            stats.skip++
+            diag('upload:skip', { dest })
+            return
+        }
+        this.ensureTransferRegistered(t)
+        this.attachRetry(tab, t, dest)
+        diag('upload:file-start', { dest })
+        try {
+            await sftp.upload(dest, t)
+            stats.ok++
+            diag('upload:file-ok', { dest })
+        } catch (e) {
+            stats.fail++
+            diag('upload:file-fail', { dest, error: String(e) })
         }
     }
 
-    private async uploadTree (
-        sftp: SFTPSession,
-        base: string,
-        dir: DirectoryUpload,
-        result: { ok: number, fail: number },
-    ): Promise<void> {
+    /** 目录树递归上传 */
+    private async uploadTree (tab: SSHTabLike, sftp: SFTPSession, base: string, dir: DirectoryUpload, stats: UploadStats): Promise<void> {
         for (const child of dir.getChildrens()) {
             const name = this.baseName(this.safeName(child as any))
-            const dest = this.joinPosix(base, name)
             if (child instanceof DirectoryUpload) {
+                const dest = this.joinPosix(base, name)
                 try {
                     await sftp.mkdir(dest)
                 } catch {
-                    // 目录已存在，继续
+                    // 目录已存在 → 合并
                 }
-                await this.uploadTree(sftp, dest, child, result)
+                await this.uploadTree(tab, sftp, dest, child, stats)
             } else {
-                try {
-                    ;(this.platform as any)._registerFileTransfer?.(child)
-                    await sftp.upload(dest, child as FileUpload)
-                    result.ok++
-                    diag('drop:file-ok', { dest })
-                } catch (e) {
-                    result.fail++
-                    diag('drop:file-fail', { dest, error: String(e) })
-                }
+                await this.uploadOneFile(tab, sftp, base, child as FileUpload, stats)
             }
         }
+    }
+
+    /** 同名冲突策略 */
+    private async resolveDestination (sftp: SFTPSession, base: string, name: string): Promise<{ dest: string, skip: boolean }> {
+        const policy = this.config.store.smartUpload?.conflictPolicy ?? 'overwrite'
+        const dest = this.joinPosix(base, name)
+        if (policy === 'overwrite') {
+            return { dest, skip: false }
+        }
+        if (!(await this.remoteExists(sftp, dest))) {
+            return { dest, skip: false }
+        }
+        if (policy === 'skip') {
+            return { dest, skip: true }
+        }
+        // rename
+        const dot = name.lastIndexOf('.')
+        const stem = dot > 0 ? name.slice(0, dot) : name
+        const ext = dot > 0 ? name.slice(dot) : ''
+        for (let i = 1; i < 1000; i++) {
+            const candidate = this.joinPosix(base, `${stem} (${i})${ext}`)
+            if (!(await this.remoteExists(sftp, candidate))) {
+                return { dest: candidate, skip: false }
+            }
+        }
+        return { dest, skip: true }
+    }
+
+    private async remoteExists (sftp: SFTPSession, path: string): Promise<boolean> {
+        try {
+            await sftp.stat(path)
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    /**
+     * 内置的 startUpload（文件选择）/ startUploadFromDragEvent（拖拽，1.0.238 起）会自动登记
+     * fileTransferStarted$；文件夹选择器走 startUploadDirectory → getAllFiles，不会登记。
+     * 这里按需补登记，避免一条文件两条记录。
+     */
+    private ensureTransferRegistered (t: FileUpload): void {
+        if (this.transferCenter.hasTransfer(t)) {
+            return
+        }
+        try {
+            ;(this.platform as any)._registerFileTransfer?.(t)
+        } catch {
+            // ignore
+        }
+    }
+
+    /** 失败重试挂载（仅限有本地路径的 ElectronFileUpload） */
+    private attachRetry (tab: SSHTabLike, t: FileUpload, dest: string): void {
+        const localPath = (t as any).filePath
+        if (!localPath) {
+            return
+        }
+        this.transferCenter.attachRetry(t, async () => {
+            let retryTransfer: FileUpload | undefined
+            try {
+                const list = await this.platform.startUpload({ paths: [localPath], multiple: true } as any)
+                retryTransfer = list[0]
+            } catch {
+                return
+            }
+            if (!retryTransfer || !tab.sshSession) {
+                return
+            }
+            const sftp = await tab.sshSession.openSFTP()
+            try {
+                await sftp.upload(dest, retryTransfer)
+            } catch {
+                // 失败会在传输中心显示
+            }
+        })
     }
 
     private async resolveTargetFor (tab: SSHTabLike): Promise<string | null> {
@@ -277,6 +342,35 @@ export class UploadService {
         }
     }
 
+    private activeSSHTab (): SSHTabLike | null {
+        const active: any = this.app.activeTab
+        const focused = resolveFocusedTab(active)
+        const tab = asSSHTab(focused)
+        diag('upload:start', {
+            activeTab: active?.constructor?.name,
+            focusedTab: focused?.constructor?.name,
+            isSSH: !!tab,
+            hasSession: !!tab?.session,
+            hasSshSession: !!tab?.sshSession,
+        })
+        return tab
+    }
+
+    private notifySummary (doneKey: string, errorKey: string, stats: UploadStats): void {
+        if (stats.ok === 0 && stats.fail === 0 && stats.skip === 0) {
+            return
+        }
+        let msg = this.i18n.t(stats.fail > 0 ? errorKey : doneKey, { ok: stats.ok, fail: stats.fail })
+        if (stats.skip > 0) {
+            msg += this.i18n.t('notify.uploadSkipped', { skip: stats.skip })
+        }
+        if (stats.fail > 0) {
+            this.notifications.error(msg)
+        } else {
+            this.notifications.notice(msg)
+        }
+    }
+
     private async mapWithConcurrency<T> (items: T[], limit: number, fn: (item: T) => Promise<void>): Promise<void> {
         const queue = [...items]
         const workers = Array.from({ length: Math.min(limit, queue.length) }, async () => {
@@ -305,7 +399,7 @@ export class UploadService {
         return parts[parts.length - 1] || p
     }
 
-    private safeName (t: FileUpload): string {
+    private safeName (t: FileUpload | DirectoryUpload): string {
         try {
             return t.getName()
         } catch {

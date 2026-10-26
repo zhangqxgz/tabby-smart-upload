@@ -17,7 +17,11 @@ import { I18nService } from '../i18n'
         <input class="form-check-input" type="checkbox" id="suAutoInject" [(ngModel)]="c.autoInject" (ngModelChange)="save()">
         <label class="form-check-label" for="suAutoInject">{{i18n.t('settings.autoInject')}}</label>
     </div>
-    <div class="text-muted small mb-2">{{i18n.t('settings.autoInjectHint')}}</div>
+    <div class="form-check form-switch">
+        <input class="form-check-input" type="checkbox" id="suSilentSetup" [(ngModel)]="c.silentSetup" (ngModelChange)="save()">
+        <label class="form-check-label" for="suSilentSetup">{{i18n.t('settings.silentSetup')}}</label>
+    </div>
+    <div class="text-muted small mb-2">{{i18n.t('settings.silentSetupHint')}}</div>
     <div class="form-check form-switch">
         <input class="form-check-input" type="checkbox" id="suNotifyFail" [(ngModel)]="c.notifyInjectFailure" (ngModelChange)="save()">
         <label class="form-check-label" for="suNotifyFail">{{i18n.t('settings.notifyInjectFailure')}}</label>
@@ -52,6 +56,12 @@ import { I18nService } from '../i18n'
     <label class="form-label">{{i18n.t('settings.concurrency')}}</label>
     <input type="number" class="form-control w-auto" min="1" max="8"
         [(ngModel)]="c.uploadConcurrency" (ngModelChange)="onConcurrencyChange()">
+    <label class="form-label mt-2">{{i18n.t('settings.conflictPolicy')}}</label>
+    <select class="form-select w-auto" [(ngModel)]="c.conflictPolicy" (ngModelChange)="save()">
+        <option value="overwrite">{{i18n.t('settings.conflictOverwrite')}}</option>
+        <option value="skip">{{i18n.t('settings.conflictSkip')}}</option>
+        <option value="rename">{{i18n.t('settings.conflictRename')}}</option>
+    </select>
     <div class="form-check form-switch mt-2">
         <input class="form-check-input" type="checkbox" id="suRemember" [(ngModel)]="c.rememberPathPerHost" (ngModelChange)="save()">
         <label class="form-check-label" for="suRemember">{{i18n.t('settings.rememberPath')}}</label>

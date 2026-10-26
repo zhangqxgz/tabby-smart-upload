@@ -31,6 +31,8 @@ export interface TransferItem {
     etaMs: number | null
     /** 失败原因等备注 */
     note: string
+    /** 失败重试动作（仅插件上传且能拿到本地路径时挂载） */
+    retry?: () => Promise<void>
 }
 
 const MAX_ITEMS = 300
@@ -88,6 +90,27 @@ export class TransferCenterService {
         } catch {
             // ignore
         }
+    }
+
+    /** 是否已在传输中心跟踪（用于避免重复登记） */
+    hasTransfer (transfer: FileTransfer): boolean {
+        return this.items.some(x => x.transfer === transfer)
+    }
+
+    /** 给某条传输挂载失败重试动作 */
+    attachRetry (transfer: FileTransfer, retry: () => Promise<void>): void {
+        const item = this.items.find(x => x.transfer === transfer)
+        if (item) {
+            item.retry = retry
+        }
+    }
+
+    /** 执行失败项重试（新传输会以新记录进入列表） */
+    async retry (item: TransferItem): Promise<void> {
+        if (item.status !== 'error' || !item.retry) {
+            return
+        }
+        await item.retry()
     }
 
     clearFinished (): void {

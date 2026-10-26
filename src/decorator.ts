@@ -3,8 +3,8 @@
  */
 import { Injectable } from '@angular/core'
 import { BaseTerminalTabComponent, TerminalDecorator } from 'tabby-terminal'
-import { asSSHTab, hostKeyOf } from './services/upload.service'
-import { CwdInjectService, ShellSessionLike } from './services/cwdInject.service'
+import { asSSHTab, hostKeyOf } from './types'
+import { CwdInjectService } from './services/cwdInject.service'
 
 @Injectable()
 export class SmartUploadDecorator extends TerminalDecorator {
@@ -21,12 +21,12 @@ export class SmartUploadDecorator extends TerminalDecorator {
         if (sessionChanged$?.subscribe) {
             this.subscribeUntilDetached(terminal, sessionChanged$.subscribe(() => {
                 if (tab.session) {
-                    this.cwdInject.scheduleInject(tab.session as ShellSessionLike, hostKeyOf(tab))
+                    this.cwdInject.scheduleSetup(tab, hostKeyOf(tab))
                 }
             }))
         }
         if (tab.session) {
-            this.cwdInject.scheduleInject(tab.session as ShellSessionLike, hostKeyOf(tab))
+            this.cwdInject.scheduleSetup(tab, hostKeyOf(tab))
         }
     }
 }

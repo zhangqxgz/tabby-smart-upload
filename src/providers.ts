@@ -55,6 +55,7 @@ export class SmartUploadHotkeyProvider extends HotkeyProvider {
     async provide (): Promise<Array<{ id: string, name: string }>> {
         return [
             { id: 'smart-upload-to-cwd', name: this.i18n.t('hotkey.uploadToCwd') },
+            { id: 'smart-upload-folder-to-cwd', name: this.i18n.t('hotkey.uploadFolderToCwd') },
             { id: 'smart-upload-transfers', name: this.i18n.t('hotkey.transferCenter') },
         ]
     }
@@ -78,6 +79,7 @@ export class SmartUploadContextMenuProvider extends TabContextMenuItemProvider {
         }
         const items: MenuItemOptions[] = [
             { label: this.i18n.t('ctx.uploadToCwd'), click: () => { void this.upload.uploadToCwd() } },
+            { label: this.i18n.t('ctx.uploadFolderToCwd'), click: () => { void this.upload.uploadFolderToCwd() } },
             { label: this.i18n.t('ctx.transferCenter'), click: () => this.transferCenter.requestOpen() },
         ]
         if (sshTab.session) {

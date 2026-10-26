@@ -54,6 +54,8 @@ export function bridgeTransferCenterUi (service: TransferCenterService, modal: N
                 <span class="su-tc-badge" [ngClass]="item.status">{{statusLabel(item.status)}}</span>
             </div>
         </div>
+        <button class="btn btn-link btn-sm su-tc-cancel" *ngIf="item.status === 'error' && item.retry"
+            (click)="tc.retry(item)" [title]="i18n.t('tc.retry')">⟳</button>
         <button class="btn btn-link btn-sm su-tc-cancel" *ngIf="item.status === 'active'"
             (click)="tc.cancel(item)" [title]="i18n.t('tc.cancel')">✕</button>
     </div>
