@@ -35,6 +35,7 @@
 - **下载**（download.service）：扩展内置 SFTP 面板右键（SFTPContextMenuItemProvider）；startDownload 第 4 参 filePath 跳过保存框（运行时支持，类型未暴露）；文件夹递归下载；本地冲突策略复用 conflictPolicy；Windows 非法字符清洗
 - **传输列表顺序**：传输中心 `sortedItems` = startedAt 降序（最新在前）；**内置传输下拉**通过 `ApplicationRef.components[0].activeTransfers`（AppRoot 公开属性，1.0.238 确认存在）原地 splice 重排 + tick，实现"最新在前"（设置项 reorderBuiltinTransfers 可关，内置结构变化时静默跳过）
 - **Tabby 自动更新坑（真机）**：electron-updater 下载好新版本后在**退出时静默安装**（pending 目录 `%LOCALAPPDATA%\tabby-updater\pending`），安装期间窗口消失、随后以新版本重启——看起来像"闪退"，实为升级流程；核对 `(Get-Item Tabby.exe).VersionInfo.ProductVersion` 与 `%APPDATA%\tabby\log.txt` 末尾是否 `module loaded`/`CWD reported for` 即可确认插件无恙。Keygen 更新检查报错（ERR_NAME_NOT_RESOLVED/代理断）无害
+- **su/sudo 不跟随**：SFTP 通道 = SSH 登录用户；su/sudo 后终端是 root 但 SFTP 仍是登录用户 → /root 写入/读取 Permission denied；静默配置只写登录用户 .bashrc（root 新 shell 无钩子）。已加专用报错 notify.pathForbidden（reportedCwd 存在但 stat 失败时提示登录用户）
 - **分屏坑（真机实测）**：`app.activeTab` 可能是 SplitTabComponent 外壳（无 sshSession），直接判断会误报"不是 SSH 会话"（红色 toast，用户以为插件坏了）；必须 `resolveFocusedTab()` 先 getFocusedTab() 再判断
 
 ## 当前状态

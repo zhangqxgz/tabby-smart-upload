@@ -316,8 +316,16 @@ export class UploadService {
                 throw new Error('not a directory')
             }
             return this.normalizeDir(target)
-        } catch {
-            this.notifications.error(this.i18n.t('notify.badPath', { path: target }))
+        } catch (e) {
+            // 终端目录已上报但 SFTP（登录用户）访问不了：多半是 su/sudo 切换了用户或目录无权限
+            const reportedCwdExists = !!(await tab.session!.getWorkingDirectory?.().catch(() => null))
+            const loginUser = String((tab.profile as any)?.options?.user || '')
+            diag('target:stat-fail', { target, loginUser, reportedCwdExists, error: String(e) })
+            if (reportedCwdExists) {
+                this.notifications.error(this.i18n.t('notify.pathForbidden', { user: loginUser || '?', path: target }))
+            } else {
+                this.notifications.error(this.i18n.t('notify.badPath', { path: target }))
+            }
             return null
         }
     }

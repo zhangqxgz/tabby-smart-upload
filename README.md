@@ -54,6 +54,17 @@ Tabby 插件，解决上传体验的两个痛点：
 
 配置过 dotfiles 后，插件检测到远端已自行上报会跳过注入，连接时零回显。
 
+## 已知限制：su / sudo 切换用户
+
+上传/下载走的是 **SSH 登录用户**的 SFTP 权限。如果你以普通用户登录后在终端里 `su - root` / `sudo -i`，
+终端虽是 root，但 SFTP 仍是登录用户：
+
+- 写 `/root/...` 等 root 独占目录会 Permission denied（插件会提示具体原因）
+- 下载 root 独占文件同样无权读取
+- 静默配置写在**登录用户**的 `~/.bashrc`，root 的新 shell 不会加载它（`su` 前的 shell 正常上报）
+
+需要操作 root 目录时：直接用 root 登录（或给登录用户开 sudo 但用 SFTP 可写目录工作）。
+
 ## 环境要求
 
 - Tabby ≥ 1.0.2xx（在 1.0.238 上实测；依赖 OSC 1337 解析与 `fileTransferStarted$`，建议保持最新版）
