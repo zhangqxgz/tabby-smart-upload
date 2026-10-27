@@ -52,4 +52,10 @@
 - 内部文档命名：`docs/YYYY-MM-DD-中文标题.md`
 - 默认热键：上传到当前目录 `Ctrl-Shift-U`；传输中心 `Ctrl-Shift-Y`（可在 Tabby 设置改绑）
 - 配置存 Tabby config.yaml 的 `smartUpload:` 段（ConfigProvider defaults 必须写全，漏键 ConfigProxy 不建 accessor 会存不住）
-- git 尚未初始化（用户未要求）；发布仓库预留 github.com/zhangqxgz/tabby-smart-upload
+- 仓库：github.com/zhangqxgz/tabby-smart-upload（公开，MIT）
+
+## Obsidian 项目文档（文档总索引要求，变更需同步）
+- 位置：`C:\Users\qxzha\SynologyDrive\Drive\10-obsidian\mynote\09-opencode\03-项目\Tabby智能上传插件\`
+- 四篇：项目概述 / 使用与安装 / 技术要点与踩坑 / 构建与发布
+- 全局记忆镜像：`09-opencode\01-通用\Tabby智能上传插件.md`（与 /home/qx/.config/opencode/AGENTS.md 同步）
+- 功能/版本/发布/踩坑有变化时，同步更新上述文档与全局记忆 + `/mnt/c/dev/code/AGENTS.md` 项目条目
