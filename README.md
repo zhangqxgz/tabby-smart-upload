@@ -59,7 +59,7 @@ Tabby 插件，解决上传体验的两个痛点：
 上传/下载走的是 **SSH 登录用户**的 SFTP 权限。如果你以普通用户登录后在终端里 `su - root` / `sudo -i`，
 终端虽是 root，但 SFTP 仍是登录用户：
 
-- 写 `/root/...` 等 root 独占目录会 Permission denied（插件会提示具体原因）
+- 写 `/root/...` 等 root 独占目录会 Permission denied（插件提示具体原因，并**弹框让你改选一个可写目录继续**）
 - 下载 root 独占文件同样无权读取
 - 静默配置写在**登录用户**的 `~/.bashrc`，root 的新 shell 不会加载它（`su` 前的 shell 正常上报）
 

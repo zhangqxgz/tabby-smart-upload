@@ -1,6 +1,6 @@
 {
   "name": "tabby-smart-upload",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Tabby 智能上传插件：自动注入 CWD 目录上报 + 增强传输中心。Smart upload for Tabby: auto CWD detection via OSC 1337 injection and an enhanced transfer center.",
   "keywords": [
     "tabby-plugin",

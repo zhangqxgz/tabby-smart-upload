@@ -322,7 +322,26 @@ export class UploadService {
             const loginUser = String((tab.profile as any)?.options?.user || '')
             diag('target:stat-fail', { target, loginUser, reportedCwdExists, error: String(e) })
             if (reportedCwdExists) {
+                // 明确提示原因，并允许改选一个登录用户可写的目录继续，而不是直接中断
                 this.notifications.error(this.i18n.t('notify.pathForbidden', { user: loginUser || '?', path: target }))
+                const suggested = (tab.profile as any)?.options?.cwd
+                    || (loginUser && loginUser !== 'root' ? `/home/${loginUser}` : null)
+                    || cfg?.fallbackPath
+                    || '/'
+                const picked = await this.askPath(String(suggested))
+                if (picked && picked !== target) {
+                    try {
+                        const sftp2 = await tab.sshSession!.openSFTP()
+                        const st2 = await sftp2.stat(picked)
+                        if (st2.isDirectory) {
+                            diag('target:repicked', { picked })
+                            return this.normalizeDir(picked)
+                        }
+                    } catch {
+                        // 落到下面的 badPath 提示
+                    }
+                    this.notifications.error(this.i18n.t('notify.badPath', { path: picked }))
+                }
             } else {
                 this.notifications.error(this.i18n.t('notify.badPath', { path: target }))
             }
